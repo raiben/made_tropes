@@ -55,7 +55,7 @@ class MainClass(object):
         print("Please, select one of the commands below:")
         command_help_template = " - {command}: {description}"
         for subClass in self.commands_subclasses:
-            print(command_help_template.format(command=subClass.__name__, description=subClass.get_info()))
+            print(command_help_template.format(command=subClass.__name__, description=subClass.get_description()))
         print(" - <command> help: usage arguments")
 
     @staticmethod

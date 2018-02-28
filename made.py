@@ -1,4 +1,6 @@
 import sys
+from collections import OrderedDict
+from os.path import basename
 
 from commands.base_command import BaseCommand
 from commands import *
@@ -13,6 +15,7 @@ class MainClass(object):
     def run(self):
         self.check_command_is_provided()
         self.retrieve_command_and_check_existence()
+        self.check_help_usage()
         self.run_command_with_rest_of_arguments()
 
     def check_command_is_provided(self):
@@ -30,8 +33,21 @@ class MainClass(object):
             exit(0)
         self.command = commands[0]
 
+    def check_help_usage(self):
+        if "help" in sys.argv:
+            print("Parameters:")
+            print(self.command.get_parameters())
+            print("Sample usage:")
+            print(" - python {} {} {}".format(basename(__file__), self.command_name, self.command.get_sample_usage()))
+            exit(0)
+
     def run_command_with_rest_of_arguments(self):
-        instance = self.command(sys.argv[1:])
+        arguments_dictionary = OrderedDict()
+        for argument in sys.argv[2:]:
+            key_and_value = argument.split("=")
+            arguments_dictionary[key_and_value[0]] = key_and_value[1]
+
+        instance = self.command(arguments_dictionary)
         self.print_running_command()
         instance.run()
 
@@ -40,6 +56,7 @@ class MainClass(object):
         command_help_template = " - {command}: {description}"
         for subClass in self.commands_subclasses:
             print(command_help_template.format(command=subClass.__name__, description=subClass.get_info()))
+        print(" - <command> help: usage arguments")
 
     @staticmethod
     def print_error_no_command_introduced():

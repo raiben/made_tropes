@@ -16,5 +16,5 @@ class PlotPresenterInterface():
 class PlotPresenterFactory(BaseFactory):
     @classmethod
     def get_default_class(cls):
-        from plot_builder.implementations.plot_presenter import PlotPresenter
-        return PlotPresenter
+        from plot_builder.presenters.plot_presenter_with_basic_substitutions import PlotPresenterWithBasicSubstitution
+        return PlotPresenterWithBasicSubstitution

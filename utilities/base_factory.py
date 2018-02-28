@@ -12,8 +12,10 @@ class BaseFactory(object):
 
         return cls.get_default_class()(*args, **kwargs)
 
-    def set_mocking_class(self, new_mocking_class):
-        self._mocking_class = new_mocking_class
+    @classmethod
+    def set_mocking_class(cls,new_mocking_class):
+        cls._mocking_class = new_mocking_class
 
-    def clear_moking_class(self):
-        self._mocking_class = None
+    @classmethod
+    def clear_moking_class(cls):
+        cls._mocking_class = None

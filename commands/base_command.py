@@ -24,3 +24,13 @@ class BaseCommand():
     @abstractmethod
     def get_description():
         pass
+
+    @staticmethod
+    @abstractmethod
+    def get_parameters():
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def get_sample_usage():
+        pass

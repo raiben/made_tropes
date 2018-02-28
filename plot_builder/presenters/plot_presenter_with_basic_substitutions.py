@@ -4,7 +4,7 @@ from collections import OrderedDict
 from plot_builder.interfaces.plot_presenter_interface import PlotPresenterInterface
 
 
-class PlotPresenter(PlotPresenterInterface):
+class PlotPresenterWithBasicSubstitution(PlotPresenterInterface):
     def __init__(self, coded_plot, trope_definitions, space):
         self.coded_plot = coded_plot
         self.trope_definitions = trope_definitions

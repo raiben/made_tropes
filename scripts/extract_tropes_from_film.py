@@ -111,11 +111,8 @@ class TvTropesRFDExtractor(object):
                 if line.startswith("<http://dbtropes.org/resource/Main/"):
                     for trope_instance in self.trope_names_found:
                         self.check_film_description_in_line(line, trope_instance)
-
                         self.check_general_description_in_line(line, trope_instance)
-
                         self.check_category_in_line(line, trope_instance)
-
                         self.check_full_name_in_line(line, trope_instance)
 
                 self.print_percent()

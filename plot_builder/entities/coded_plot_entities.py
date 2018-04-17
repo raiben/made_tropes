@@ -9,3 +9,4 @@ class CodedPlotEventEntity(object):
         self.list_of_character_ids = []
         self.list_of_place_ids = []
         self.list_of_object_ids = []
+        self.list_of_events_order = []

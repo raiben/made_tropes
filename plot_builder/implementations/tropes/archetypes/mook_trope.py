@@ -1,3 +1,4 @@
+from plot_builder.entities.event_entity import EventEntity
 from plot_builder.interfaces.trope_definition_interface import TropeDefinitionInterface
 
 
@@ -21,3 +22,10 @@ class MookTrope(TropeDefinitionInterface):
         return "{} is a cannon fodder that fights for {} and loses against {}".format(list_of_characters[0],
                                                                                       list_of_characters[1],
                                                                                       list_of_characters[2])
+
+
+    def get_number_of_events(self):
+        1
+
+    def get_events_from_coded_plot_entity(self, coded_plot_entity):
+        return [EventEntity(subjects=[coded_plot_entity.list_of_character_ids[0]])]

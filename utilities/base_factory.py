@@ -17,5 +17,5 @@ class BaseFactory(object):
         cls._mocking_class = new_mocking_class
 
     @classmethod
-    def clear_moking_class(cls):
+    def clear_mocking_class(cls):
         cls._mocking_class = None

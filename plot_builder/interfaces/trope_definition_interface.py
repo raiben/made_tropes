@@ -9,8 +9,32 @@ class TropeDefinitionInterface:
         pass
 
     @abstractmethod
+    def get_categories(self):
+        return []
+
+    @abstractmethod
+    def get_general_description(self):
+        return ""
+
+    @abstractmethod
+    def get_description_for_film(self):
+        return {}
+
+    @abstractmethod
+    def get_short_name(self):
+        return ""
+
+    @abstractmethod
+    def get_long_name(self):
+        return ""
+
+    @abstractmethod
+    def get_rdf_element(self):
+        return ""
+
+    @abstractmethod
     def get_sorted_role_characters_array(self):
-        pass
+        return []
 
     @abstractmethod
     def get_sorted_role_places_array(self):

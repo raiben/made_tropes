@@ -1,0 +1,12 @@
+item: ('BigBad',) , 0.103
+item: ('TitleDrop',) , 0.107
+item: ('BittersweetEnding',) , 0.118
+item: ('LargeHam',) , 0.122
+item: ('Foreshadowing',) , 0.126
+item: ('Jerkass',) , 0.131
+item: ('DeadpanSnarker',) , 0.136
+item: ('OhCrap',) , 0.139
+item: ('ChekhovsGun',) , 0.168
+item: ('ShoutOut',) , 0.253
+
+------------------------ RULES:

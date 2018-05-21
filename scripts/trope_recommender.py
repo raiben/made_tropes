@@ -173,7 +173,7 @@ class UserInterface():
 
 if len(sys.argv) < 2:
     sys.stderr.write("Usage: {executable} <rules_text_file>\n"
-                     "Example: {executable} ~/data/a_priori_rules_0.005_0.05.txt".format(executable=sys.argv[0]))
+                     "Example: {executable} ~/data/apriori_rules_0.005_0.05.txt".format(executable=sys.argv[0]))
     exit(1)
 
 recommender = Recommender(path_to_rules=sys.argv[1])

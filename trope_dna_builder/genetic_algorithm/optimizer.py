@@ -1,11 +1,9 @@
 import multiprocessing
 import os.path
 import re
-import time
 from multiprocessing.pool import ThreadPool
 from random import Random
-from time import time
-from unittest import TestCase
+import time
 
 import cachetools as cachetools
 import inspyred
@@ -34,7 +32,8 @@ class Optimizer(object):
 
     def __init__(self, list_of_current_tropes=[], seed=None, number_of_tropes=43, path_to_rules=None,
                  max_evaluations=30000, multi_process=False, multi_thread=False, mutation_probability=0.0232,
-                 crossover_probability=1, population_size=100):
+                 crossover_probability=1, population_size=100, details_file_name=None, summary_file_name=None,
+                 execution_name="execution"):
 
         self.list_of_tropes = list_of_current_tropes
         self.random = Random(seed) if seed is not None else Random(time())
@@ -47,6 +46,10 @@ class Optimizer(object):
         self.crossover_probability = crossover_probability
         self.population_size = population_size
 
+        self.details_file_name = details_file_name
+        self.summary_file_name = summary_file_name
+        self.execution_name = execution_name
+
         self.tropes = []
         self.tropes_indexes = []
         self.rules_by_trope = {}
@@ -56,6 +59,8 @@ class Optimizer(object):
         self.cache = cachetools.LRUCache(5000, missing=None, getsizeof=None)
 
     def calculate_solution(self):
+        start = time.time()
+
         ea = inspyred.ec.GA(self.random)
         pool = None
 
@@ -82,8 +87,14 @@ class Optimizer(object):
             pool.join()
             pool.close()
 
-        print('Best Solution: \n{0}'.format(str(best_candidate)))
-        trope_list = [self.tropes[index] for index in best_candidate.candidate]
+        trope_list = sorted([self.tropes[index] for index in best_candidate.candidate])
+
+        seconds = time.time() - start
+
+        summary = ", ".join(
+            [self.execution_name, str(best_candidate.fitness), str(int(seconds))] + trope_list)
+        self.log_summary_line(summary)
+
         return Solution(trope_list, best_candidate.fitness)
 
     def build_generator(self):
@@ -175,7 +186,8 @@ class Optimizer(object):
             log = [num_generations, stats['best'], stats['worst'], stats['mean'], stats['median'], stats['std']]
             log += sorted(best_individual.candidate)
             log = [str(round(value, 3)) for value in log]
-            print(", ".join(log))
+            log.insert(0, self.execution_name)
+            self.log_detail_line(", ".join(log))
 
             # print ("Geneneration={!s}. Best fitness={!s}".format(num_generations, best_individual.fitness))
 
@@ -301,20 +313,15 @@ class Optimizer(object):
     def should_crossover(self, random):
         return random.random() <= self.crossover_probability
 
+    def log_detail_line(self, content):
+        self.log_line(content, self.details_file_name)
 
-class TestOptimizer(TestCase):
-    def test_when_no_list_provided_then_solution_has_43_tropes(self):
-        optimizer = Optimizer(seed=123, mutation_probability=0.005, crossover_probability=1,
-                              population_size=100)
-        solution = optimizer.calculate_solution()
-        self.assertEqual(len(solution.trope_list), 43, "Should've returned a solution of 43 tropes")
+    def log_summary_line(self, content):
+        self.log_line(content, self.summary_file_name)
 
-    def test_when_no_list_provided_and_multi_process_then_solution_has_43_tropes(self):
-        optimizer = Optimizer(seed=123, max_generations=5, multi_process=True)
-        solution = optimizer.calculate_solution()
-        self.assertEqual(len(solution.trope_list), 43, "Should've returned a solution of 43 tropes")
-
-    def test_when_no_list_provided_and_multi_threaded_then_solution_has_43_tropes(self):
-        optimizer = Optimizer(seed=123, max_generations=5, multi_thread=True)
-        solution = optimizer.calculate_solution()
-        self.assertEqual(len(solution.trope_list), 43, "Should've returned a solution of 43 tropes")
+    def log_line(self, content, file_name):
+        if file_name is None:
+            print(content)
+        else:
+            with open(file_name, "a") as file:
+                file.write(content + "\n")

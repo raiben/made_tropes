@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from trope_adn_builder.genetic_algorithm.optimizer import Optimizer
+from trope_dna_builder.genetic_algorithm.optimizer import Optimizer
 
 
 class TestOptimizer(TestCase):

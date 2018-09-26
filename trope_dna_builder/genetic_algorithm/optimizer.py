@@ -1,9 +1,9 @@
 import multiprocessing
 import os.path
 import re
+import time
 from multiprocessing.pool import ThreadPool
 from random import Random
-import time
 
 import cachetools as cachetools
 import inspyred
@@ -25,15 +25,18 @@ class AssociativeRule(object):
 
 class Optimizer(object):
     DEFAULT_APRIORI_FILE = "../../scripts/data/apriori_rules_0.005_0.05.txt"
-
     ITEM_PATTERN = re.compile("^item: \(([^\\\\]*)\)")
     RULE_PATTERN = re.compile("^Rule: \((.*)\) ==> \((.*)\) , ([0-9\.]*)$")
     NUMBER_OF_CPUS = 8
 
+    CROSSOVER_FROM_PARTS = 0
+    CROSSOVER_SUBSET = 1
+
     def __init__(self, list_of_current_tropes=[], seed=None, number_of_tropes=43, path_to_rules=None,
                  max_evaluations=30000, multi_process=False, multi_thread=False, mutation_probability=0.0232,
                  crossover_probability=1, population_size=100, details_file_name=None, summary_file_name=None,
-                 execution_name="execution"):
+                 execution_name="execution", crossover=CROSSOVER_FROM_PARTS, no_better_results_during_evaluations=0
+                 ):
 
         self.list_of_tropes = list_of_current_tropes
         self.random = Random(seed) if seed is not None else Random(time())
@@ -57,6 +60,20 @@ class Optimizer(object):
 
         self._retrieve_info_from_file()
         self.cache = cachetools.LRUCache(5000, missing=None, getsizeof=None)
+        self.crossover = crossover
+        self.build_crossover_operator = None
+        self.set_crossover_operator(crossover)
+        self.no_better_results_during_evaluations = no_better_results_during_evaluations
+        self.best_fitness_ever = None
+        self.best_candidate_ever = None
+        self.last_evaluation_that_improved = 0
+
+    def set_crossover_operator(self, crossover):
+        if crossover == self.CROSSOVER_SUBSET:
+            self.build_crossover_operator = self.build_crossover_as_subset
+            return
+
+        self.build_crossover_operator = self.build_crossover_from_parts_and_fill_with_mutations
 
     def calculate_solution(self):
         start = time.time()
@@ -65,8 +82,8 @@ class Optimizer(object):
         pool = None
 
         ea.selector = inspyred.ec.selectors.tournament_selection
-        ea.terminator = inspyred.ec.terminators.evaluation_termination
-        ea.variator = [self.build_mutator(), inspyred.ec.variators.crossover(self.build_crossover())]
+        ea.terminator = self.build_terminator()
+        ea.variator = [self.build_mutator(), inspyred.ec.variators.crossover(self.build_crossover_operator())]
         ea.observer = self.build_observer()
 
         ea.evaluator = self.build_evaluator()
@@ -81,21 +98,20 @@ class Optimizer(object):
 
         final_pop = ea.evolve(generator=self.build_generator(), evaluator=ea.evaluator,
                               max_evaluations=self.max_evaluations, pop_size=self.population_size)
-        best_candidate = max(final_pop)
 
         if self.multi_thread or self.multi_process:
             pool.join()
             pool.close()
 
-        trope_list = sorted([self.tropes[index] for index in best_candidate.candidate])
+        trope_list = sorted([self.tropes[index] for index in self.best_candidate_ever.candidate])
 
         seconds = time.time() - start
 
         summary = ", ".join(
-            [self.execution_name, str(best_candidate.fitness), str(int(seconds))] + trope_list)
+            [self.execution_name, str(self.best_fitness_ever), str(int(seconds))] + trope_list)
         self.log_summary_line(summary)
 
-        return Solution(trope_list, best_candidate.fitness)
+        return Solution(trope_list, self.best_fitness_ever)
 
     def build_generator(self):
         def generator(random, args):
@@ -140,7 +156,7 @@ class Optimizer(object):
 
         return mutator
 
-    def build_crossover(self):
+    def build_crossover_from_parts_and_fill_with_mutations(self):
         def crossover(random, mom, dad, args):
             if self.should_crossover(random):
                 block_init = random.randint(0, self.number_of_tropes)
@@ -178,16 +194,60 @@ class Optimizer(object):
 
         return crossover
 
+    def build_crossover_as_subset(self):
+        def crossover(random, mom, dad, args):
+            if self.should_crossover(random):
+                superset = set(mom).union(set(dad))
+                all_candidates = list(superset)
+                random.shuffle(all_candidates)
+                first_child = all_candidates[0:self.number_of_tropes]
+                first_child.sort()
+
+                random.shuffle(all_candidates)
+                second_child = all_candidates[0:self.number_of_tropes]
+                second_child.sort()
+
+                return [first_child, second_child]
+            else:
+                return [mom, dad]
+
+        return crossover
+
+    def build_terminator(self):
+        def terminator(population, num_generations, num_evaluations, args):
+            stats = fitness_statistics(population)
+            best_fitness_in_population = stats['best']
+            if self.best_fitness_ever is None or self.best_fitness_ever < best_fitness_in_population:
+                self.best_fitness_ever = best_fitness_in_population
+                self.best_candidate_ever = max(population)
+                self.last_evaluation_that_improved = num_evaluations
+
+            evaluation_is_above_max = num_evaluations >= self.max_evaluations
+            evaluations_without_improvement = num_evaluations - self.last_evaluation_that_improved
+            max_did_not_change_enough = evaluations_without_improvement >= self.no_better_results_during_evaluations
+
+            print("Evaluations " + str(num_evaluations) + ", max_evaluations " + str(self.max_evaluations)
+                  + ", last_evaluation_that_improved " + str(self.last_evaluation_that_improved)
+                  + ", best_ind " + str(self.best_fitness_ever))
+
+            if evaluation_is_above_max and max_did_not_change_enough:
+                return True
+
+            return False
+
+        return terminator
+
     def build_observer(self):
         def observer(population, num_generations, num_evaluations, args):
             stats = fitness_statistics(population)
             best_individual = max(population, key=lambda x: x.fitness)
 
-            log = [num_generations, stats['best'], stats['worst'], stats['mean'], stats['median'], stats['std']]
+            log = [num_generations, self.best_fitness_ever, stats['best'], stats['worst'], stats['mean'],
+                   stats['median'], stats['std']]
             log += sorted(best_individual.candidate)
-            log = [str(round(value, 3)) for value in log]
+            log = [str(round(value, 3)) if value is not None else '3' for value in log]
             log.insert(0, self.execution_name)
-            self.log_detail_line(", ".join(log))
+            self.log_detail_line(",".join(log))
 
             # print ("Geneneration={!s}. Best fitness={!s}".format(num_generations, best_individual.fitness))
 
